@@ -22,6 +22,11 @@ export default function RootLayout({
                         <Link href="/posts" className="hover:text-blue-300 transition-colors">บทความ</Link>
                         <Link href="/users" className="hover:text-blue-300 transition-colors">ผู้ใช้</Link>
                         <Link href="/about" className="hover:text-blue-300 transition-colors">เกี่ยวกับ</Link>
+                        <Link href="/blog-spa" className="hover:text-blue-300 transition-colors">Blog Aggregator</Link>
+                    </div>
+                    <div className="flex gap-4 ml-auto">
+                        <Link href="/contact" className="hover:text-blue-300 transition-colors">ติดต่อ</Link>
+                        <Link href="/login" className="hover:text-blue-300 transition-colors">เข้าสู่ระบบ</Link>
                     </div>
                 </nav>
                 <div className="max-w-4xl mx-auto py-8 px-4">

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { ExternalItem } from '@/lib/external';
+import CommentBox from '@/components/CommentBox';
 
-export default function BlogSpaPage() {
+function BlogSpaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -316,6 +317,16 @@ export default function BlogSpaPage() {
 
       )}
 
+      <CommentBox chatId="blog-spa" />
+
     </main>
+  );
+}
+
+export default function BlogSpaPage() {
+  return (
+    <Suspense fallback={<div className="p-8">กำลังโหลด...</div>}>
+      <BlogSpaContent />
+    </Suspense>
   );
 }
