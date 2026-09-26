@@ -7,7 +7,7 @@ export const GET = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
-    const todo = getTodoById(id);
+    const todo = await getTodoById(id);
     return Response.json({ todo });
   }
 );
@@ -19,7 +19,10 @@ export const PATCH = withErrorHandling(
   ) => {
     const { id } = await params;
     const updates = await request.json();
-    const updated = editTodo(id, updates);
+    const updated = await editTodo(id, updates);
+    if (!updated) {
+      return Response.json({ error: 'ไม่พบรายการงานนี้' }, { status: 404 });
+    }
     return Response.json({ ok: true, item: updated });
   }
 );
@@ -30,7 +33,10 @@ export const DELETE = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
-    removeTodo(id);
+    const deleted = await removeTodo(id);
+    if (!deleted) {
+      return Response.json({ error: 'ไม่พบรายการงานนี้' }, { status: 404 });
+    }
     return Response.json({ ok: true, message: 'ลบรายการสำเร็จ' }, { status: 200 });
   }
 );

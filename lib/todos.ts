@@ -1,71 +1,71 @@
-export type Priority = 'low' | 'medium' | 'high';
+import { prisma } from './prisma';
 
-export interface Todo {
-  id: string;
+export async function createTodo(data: {
   title: string;
-  description: string;
-  completed: boolean;
-  priority: Priority;
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
+  priority?: string;
+}) {
+  return prisma.todo.create({
+    data: {
+      title: data.title,
+      description: data.description ?? '',
+      completed: false,
+      priority: data.priority ?? 'medium',
+    },
+  });
 }
 
-// Memory storage for Workshop (Ready to migrate to DB in Week 9)
-const todos: Todo[] = [
-  {
-    id: 'todo-1',
-    title: 'ทำแลป Week 8 Next.js API Routes',
-    description: 'เรียนรู้เรื่อง Controller, Service, Model และ Error Handling',
-    completed: true,
-    priority: 'high',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'todo-2',
-    title: 'เตรียมตัวสอบกลางภาค',
-    description: 'ทบทวนสถาปัตยกรรม Server-side และ RESTful API',
-    completed: false,
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+export async function getTodos(filter?: {
+  search?: string;
+  completed?: boolean;
+  priority?: string;
+}) {
+  const where: any = {};
 
-export function addTodo(data: Omit<Todo, 'id' | 'createdAt' | 'updatedAt'>) {
-  const now = new Date().toISOString();
-  const item: Todo = {
-    id: crypto.randomUUID(),
-    createdAt: now,
-    updatedAt: now,
-    ...data,
-  };
-  todos.push(item);
-  return item;
+  if (filter?.search) {
+    where.OR = [
+      { title: { contains: filter.search, mode: 'insensitive' } },
+      { description: { contains: filter.search, mode: 'insensitive' } },
+    ];
+  }
+
+  if (filter?.completed !== undefined) {
+    where.completed = filter.completed;
+  }
+
+  if (filter?.priority) {
+    where.priority = filter.priority;
+  }
+
+  return prisma.todo.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
-export function getTodos() {
-  return todos;
+export async function getTodoById(id: string) {
+  return prisma.todo.findUnique({
+    where: { id },
+  });
 }
 
-export function findTodoById(id: string) {
-  return todos.find((t) => t.id === id) ?? null;
+export async function updateTodo(
+  id: string,
+  updates: Partial<{
+    title: string;
+    description: string;
+    completed: boolean;
+    priority: string;
+  }>
+) {
+  return prisma.todo.update({
+    where: { id },
+    data: updates,
+  });
 }
 
-export function updateTodo(id: string, updates: Partial<Omit<Todo, 'id' | 'createdAt'>>) {
-  const index = todos.findIndex((t) => t.id === id);
-  if (index === -1) return null;
-  todos[index] = {
-    ...todos[index],
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
-  return todos[index];
-}
-
-export function deleteTodo(id: string) {
-  const index = todos.findIndex((t) => t.id === id);
-  if (index === -1) return false;
-  todos.splice(index, 1);
-  return true;
+export async function deleteTodo(id: string) {
+  return prisma.todo.delete({
+    where: { id },
+  });
 }
