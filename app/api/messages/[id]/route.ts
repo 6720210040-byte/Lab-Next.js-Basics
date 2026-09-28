@@ -1,5 +1,6 @@
 import { getMessageById, editMessage, removeMessage } from '@/lib/messageService';
 import { withErrorHandling } from '@/lib/withErrorHandling';
+import { getSessionUserId } from '@/lib/auth';
 
 export const GET = withErrorHandling(
   async (
@@ -18,11 +19,9 @@ export const PATCH = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
+    const sessionUserId = getSessionUserId(request);
     const updates = await request.json();
-    const updated = await editMessage(id, updates);
-    if (!updated) {
-      return Response.json({ error: 'ไม่พบข้อความนี้' }, { status: 404 });
-    }
+    const updated = await editMessage(id, updates, sessionUserId);
     return Response.json({ ok: true, item: updated });
   }
 );
@@ -33,10 +32,8 @@ export const DELETE = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
-    const deleted = await removeMessage(id);
-    if (!deleted) {
-      return Response.json({ error: 'ไม่พบข้อความนี้' }, { status: 404 });
-    }
-    return Response.json({ ok: true, message: 'ลบข้อความสำเร็จ' }, { status: 200 });
+    const sessionUserId = getSessionUserId(request);
+    await removeMessage(id, sessionUserId);
+    return Response.json({ ok: true, message: 'ลบข้อความสำเร็จ' });
   }
 );
