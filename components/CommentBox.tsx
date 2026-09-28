@@ -15,9 +15,16 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
   const [filter, setFilter] = useState('');
   const [content, setContent] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [status, setStatus] = useState<CommentStatus>('idle');
   const [error, setError] = useState('');
+
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -25,12 +32,13 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
     fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`)
       .then(async (response) => {
         if (!response.ok) throw new Error('โหลดคอมเมนต์ไม่สำเร็จ');
-        return response.json() as Promise<{ comments: Comment[]; authenticated: boolean }>;
+        return response.json() as Promise<{ comments: Comment[]; authenticated: boolean; currentUserId?: string | null }>;
       })
       .then((data) => {
         if (!active) return;
         setComments(data.comments);
         setAuthenticated(data.authenticated);
+        setCurrentUserId(data.currentUserId || null);
       })
       .catch(() => {
         if (active) setError('ไม่สามารถโหลดคอมเมนต์ได้');
@@ -56,7 +64,7 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
     if (!keyword) return comments;
     return comments.filter(
       (comment) =>
-        comment.content.toLowerCase().includes(keyword) ||
+        (comment.content || (comment as any).text || '').toLowerCase().includes(keyword) ||
         comment.author.toLowerCase().includes(keyword),
     );
   }, [comments, filter]);
@@ -72,12 +80,12 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, content }),
+        body: JSON.stringify({ chatId, content, text: content }),
       });
       const data = await response.json() as { comment?: Comment; error?: string };
 
       if (!response.ok || !data.comment) {
-        if (response.status === 401) setAuthenticated(false);
+        if (response.status === 401 || response.status === 403) setAuthenticated(false);
         throw new Error(data.error || 'ส่งคอมเมนต์ไม่สำเร็จ');
       }
 
@@ -87,6 +95,70 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'ส่งคอมเมนต์ไม่สำเร็จ');
       setStatus('error');
+    }
+  }
+
+  function handleStartEdit(comment: Comment) {
+    setEditingId(comment.id);
+    setEditContent(comment.content || (comment as any).text || '');
+    setActionError('');
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setEditContent('');
+    setActionError('');
+  }
+
+  async function handleSaveEdit(id: string) {
+    if (editContent.trim().length < 3) {
+      setActionError('คอมเมนต์ต้องมีอย่างน้อย 3 ตัวอักษร');
+      return;
+    }
+    setIsSavingEdit(true);
+    setActionError('');
+
+    try {
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent, text: editContent }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'แก้ไขคอมเมนต์ไม่สำเร็จ');
+      }
+
+      setComments((current) =>
+        current.map((c) => (c.id === id ? { ...c, content: editContent, text: editContent } : c))
+      );
+      setEditingId(null);
+      setEditContent('');
+    } catch (err: any) {
+      setActionError(err.message || 'เกิดข้อผิดพลาดในการแก้ไข');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบคอมเมนต์นี้?')) return;
+    setActionError('');
+
+    try {
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'ลบคอมเมนต์ไม่สำเร็จ');
+      }
+
+      setComments((current) => current.filter((c) => c.id !== id));
+    } catch (err: any) {
+      setActionError(err.message || 'เกิดข้อผิดพลาดในการลบ');
     }
   }
 
@@ -105,19 +177,86 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
         />
       </div>
 
+      {actionError && (
+        <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-600 rounded text-sm">
+          {actionError}
+        </div>
+      )}
+
       {filteredComments.length > 0 ? (
         <div className="space-y-3 mb-6">
-          {filteredComments.map((comment) => (
-            <article key={comment.id} className="border-l-4 border-blue-500 bg-white p-4 shadow-sm">
-              <div className="flex justify-between gap-3 text-sm mb-1">
-                <strong className="text-gray-800">{comment.author}</strong>
-                <time className="text-gray-400" dateTime={comment.createdAt}>
-                  {new Date(comment.createdAt).toLocaleString('th-TH')}
-                </time>
-              </div>
-              <p className="text-gray-600 whitespace-pre-wrap">{comment.content}</p>
-            </article>
-          ))}
+          {filteredComments.map((comment) => {
+            const isOwner = Boolean(currentUserId && (comment as any).authorId === currentUserId);
+            const isEditing = editingId === comment.id;
+
+            return (
+              <article key={comment.id} className="border-l-4 border-blue-500 bg-white p-4 shadow-sm rounded-r">
+                <div className="flex justify-between items-center gap-3 text-sm mb-2">
+                  <div className="flex items-center gap-2">
+                    <strong className="text-gray-800">{comment.author}</strong>
+                    {isOwner && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">
+                        คุณ (เจ้าของ)
+                      </span>
+                    )}
+                  </div>
+                  <time className="text-gray-400 text-xs" dateTime={typeof comment.createdAt === 'string' ? comment.createdAt : new Date(comment.createdAt).toISOString()}>
+                    {new Date(comment.createdAt).toLocaleString('th-TH')}
+                  </time>
+                </div>
+
+                {isEditing ? (
+                  <div className="space-y-2 mt-2">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full min-h-20 border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={isSavingEdit}
+                        className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(comment.id)}
+                        disabled={isSavingEdit || editContent.trim().length < 3}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
+                      >
+                        {isSavingEdit ? 'กำลังบันทึก...' : 'บันทึก'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-gray-600 whitespace-pre-wrap">{comment.content || (comment as any).text}</p>
+                    {isOwner && (
+                      <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(comment)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50"
+                        >
+                          ✏️ แก้ไข
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(comment.id)}
+                          className="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50"
+                        >
+                          🗑️ ลบ
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </article>
+            );
+          })}
         </div>
       ) : (
         <p className="text-gray-400 mb-6">ยังไม่มีคอมเมนต์</p>
@@ -151,10 +290,22 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
           {error && <p className="text-red-600 text-sm">{error}</p>}
         </form>
       ) : (
-        <p className="text-gray-600">
-          <Link href="/login" className="text-blue-600 underline">เข้าสู่ระบบ</Link> ก่อนจึงจะแสดงความคิดเห็นได้
-        </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-center my-4">
+          <p className="text-gray-700 font-medium text-sm mb-1">
+            🔒 บุคคลที่จะคอมเมนต์ต้องเข้าสู่ระบบก่อน
+          </p>
+          <p className="text-gray-500 text-xs mb-3">
+            คุณสามารถเข้าสู่ระบบหรือสมัครสมาชิกใหม่ได้ง่ายๆ ด้วย Gmail และรหัสผ่าน
+          </p>
+          <Link
+            href="/login?redirect=/blog-spa"
+            className="inline-block px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            เข้าสู่ระบบ / สมัครสมาชิก
+          </Link>
+        </div>
       )}
     </section>
   );
 }
+

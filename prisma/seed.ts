@@ -1,9 +1,17 @@
 import { prisma } from '../lib/prisma';
+import bcrypt from 'bcrypt';
 
 async function main() {
   // Clear existing records to allow clean re-seeding
   await prisma.message.deleteMany();
   await prisma.todo.deleteMany();
+
+  const hashed = await bcrypt.hash('1234', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@tsu.ac.th' },
+    update: { password: hashed },
+    create: { email: 'admin@tsu.ac.th', password: hashed },
+  });
 
   // Seed Messages (Lab 4.2 & 4.3)
   await prisma.message.createMany({

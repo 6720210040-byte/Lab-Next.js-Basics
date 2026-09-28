@@ -13,3 +13,11 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
+
+export class ForbiddenError extends Error {
+  status = 403;
+  constructor(message = 'คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้') {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}

@@ -1,10 +1,18 @@
 import { Prisma } from '@prisma/client';
 import * as MessageModel from './messages';
-import { NotFoundError, ValidationError } from './errors';
+import { ForbiddenError, NotFoundError, ValidationError } from './errors';
+import { messageSchema, editMessageSchema } from './schemas';
+import { ZodError } from 'zod';
 
-export async function createMessage(data: { name: string; email: string; message: string }) {
-  if (!data.name || !data.email || !data.message) {
-    throw new ValidationError('ข้อมูลไม่ครบ');
+export async function createMessage(raw: unknown) {
+  let data;
+  try {
+    data = messageSchema.parse(raw);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      throw new ValidationError(err.issues[0].message);
+    }
+    throw err;
   }
 
   try {
@@ -36,14 +44,26 @@ export async function getMessageById(id: string) {
 
 export async function editMessage(
   id: string,
-  updates: Partial<{ name: string; email: string; message: string }>
+  updates: unknown,
+  sessionUserId?: string | null
 ) {
-  if (updates.message !== undefined && updates.message.trim() === '') {
-    throw new ValidationError('ข้อความห้ามเป็นค่าว่าง');
+  const message = await getMessageById(id);
+  if (message.authorId && message.authorId !== sessionUserId) {
+    throw new ForbiddenError('คุณไม่มีสิทธิ์แก้ไขข้อความนี้');
+  }
+
+  let validUpdates;
+  try {
+    validUpdates = editMessageSchema.parse(updates);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      throw new ValidationError(err.issues[0].message);
+    }
+    throw err;
   }
 
   try {
-    return await MessageModel.updateMessage(id, updates);
+    return await MessageModel.updateMessage(id, validUpdates);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
       return null;
@@ -55,7 +75,12 @@ export async function editMessage(
   }
 }
 
-export async function removeMessage(id: string) {
+export async function removeMessage(id: string, sessionUserId?: string | null) {
+  const message = await getMessageById(id);
+  if (message.authorId && message.authorId !== sessionUserId) {
+    throw new ForbiddenError('คุณไม่มีสิทธิ์ลบข้อความนี้');
+  }
+
   try {
     await MessageModel.deleteMessage(id);
     return true;

@@ -1,5 +1,6 @@
 // app/layout.tsx
 import Link from 'next/link';
+import NavbarAuth from '@/components/NavbarAuth';
 import './globals.css';
 import type { Metadata } from 'next';
 export const metadata: Metadata = {
@@ -24,9 +25,9 @@ export default function RootLayout({
                         <Link href="/about" className="hover:text-blue-300 transition-colors">เกี่ยวกับ</Link>
                         <Link href="/blog-spa" className="hover:text-blue-300 transition-colors">Blog Aggregator</Link>
                     </div>
-                    <div className="flex gap-4 ml-auto">
+                    <div className="flex items-center gap-4 ml-auto">
                         <Link href="/contact" className="hover:text-blue-300 transition-colors">ติดต่อ</Link>
-                        <Link href="/login" className="hover:text-blue-300 transition-colors">เข้าสู่ระบบ</Link>
+                        <NavbarAuth />
                     </div>
                 </nav>
                 <div className="max-w-4xl mx-auto py-8 px-4">

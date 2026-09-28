@@ -1,5 +1,6 @@
-// app/users/page.tsx (updated — import LikeButton)
-import LikeButton from '../../component/LikeButton';
+// app/users/page.tsx
+import LikeButton from '../../components/LikeButton';
+
 interface User {
     id: number;
     name: string;
