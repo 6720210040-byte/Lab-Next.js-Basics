@@ -51,6 +51,7 @@ export async function editMessage(
   if (message.authorId && message.authorId !== sessionUserId) {
     throw new ForbiddenError('คุณไม่มีสิทธิ์แก้ไขข้อความนี้');
   }
+  
 
   let validUpdates;
   try {
