@@ -1,4 +1,3 @@
-// Message service module - force conflict practice
 // Main branch version
 import { Prisma } from '@prisma/client';
 import * as MessageModel from './messages';
