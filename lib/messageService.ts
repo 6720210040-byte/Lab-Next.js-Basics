@@ -1,4 +1,4 @@
-// Message service module - force conflict practice
+// Search branch version
 import { Prisma } from '@prisma/client';
 import * as MessageModel from './messages';
 import { ForbiddenError, NotFoundError, ValidationError } from './errors';
