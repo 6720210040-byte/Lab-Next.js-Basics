@@ -1,8 +1,11 @@
+// Message service module - force conflict practice
+// Main branch version
 import { Prisma } from '@prisma/client';
 import * as MessageModel from './messages';
 import { ForbiddenError, NotFoundError, ValidationError } from './errors';
 import { messageSchema, editMessageSchema } from './schemas';
 import { ZodError } from 'zod';
+
 
 export async function createMessage(raw: unknown) {
   let data;
@@ -51,6 +54,7 @@ export async function editMessage(
   if (message.authorId && message.authorId !== sessionUserId) {
     throw new ForbiddenError('คุณไม่มีสิทธิ์แก้ไขข้อความนี้');
   }
+  
 
   let validUpdates;
   try {
