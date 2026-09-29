@@ -1,8 +1,10 @@
+// Message service module - force conflict practice
 import { Prisma } from '@prisma/client';
 import * as MessageModel from './messages';
 import { ForbiddenError, NotFoundError, ValidationError } from './errors';
 import { messageSchema, editMessageSchema } from './schemas';
 import { ZodError } from 'zod';
+
 
 export async function createMessage(raw: unknown) {
   let data;
