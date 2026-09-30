@@ -32,17 +32,21 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
     let active = true;
 
     async function loadAll() {
+      setIsCheckingAuth(true);
+      let isAuth = false;
+      let userId: string | null = null;
+
       // 1. ตรวจสอบสถานะการเข้าสู่ระบบแบบสด (Real-time Auth)
       try {
         const meRes = await fetch('/api/auth/me', {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
         });
         if (meRes.ok) {
           const meData = await meRes.json();
-          if (active) {
-            setAuthenticated(Boolean(meData.authenticated));
-            setCurrentUserId(meData.user?.id || null);
+          if (meData.authenticated && meData.user) {
+            isAuth = true;
+            userId = meData.user.id;
           }
         }
       } catch (err) {
@@ -53,15 +57,15 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
       try {
         const commentsRes = await fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`, {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
         });
         if (commentsRes.ok) {
           const data = await commentsRes.json();
           if (active) {
             setComments(data.comments || []);
             if (data.authenticated) {
-              setAuthenticated(true);
-              if (data.currentUserId) setCurrentUserId(data.currentUserId);
+              isAuth = true;
+              if (data.currentUserId) userId = data.currentUserId;
             }
           }
         } else {
@@ -71,7 +75,11 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
         console.error('Failed to load comments:', err);
         if (active) setError('ไม่สามารถโหลดคอมเมนต์ได้');
       } finally {
-        if (active) setIsCheckingAuth(false);
+        if (active) {
+          setAuthenticated(isAuth);
+          setCurrentUserId(userId);
+          setIsCheckingAuth(false);
+        }
       }
     }
 
