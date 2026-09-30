@@ -4,6 +4,7 @@ export interface MessageItem {
   id: string;
   name: string;
   email: string;
+  tag?: string | null;
   message: string;
   authorId?: string | null;
   createdAt: Date;
@@ -14,13 +15,14 @@ const fallbackMessages: MessageItem[] = [
     id: 'mock-msg-1',
     name: 'System',
     email: 'system@example.com',
+    tag: 'General',
     message: 'Database is unavailable, using local fallback data.',
     authorId: 'user-admin-1',
     createdAt: new Date(),
   },
 ];
 
-export async function addMessage(data: { name: string; email: string; message: string; authorId?: string | null }) {
+export async function addMessage(data: { name: string; email: string; message: string; tag?: string | null; authorId?: string | null }) {
   try {
     return await prisma.message.create({ data });
   } catch {
