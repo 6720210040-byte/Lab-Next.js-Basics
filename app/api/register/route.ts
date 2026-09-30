@@ -25,11 +25,13 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   const user = await createUser(normalizedEmail, parsed.password);
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieStr = `session=${user.id}; Path=/; HttpOnly; SameSite=Lax${isProd ? '; Secure' : ''}`;
   const res = Response.json(
     { ok: true, message: 'สมัครสมาชิกสำเร็จ', user: { id: user.id, email: user.email } },
     { status: 201 }
   );
   // Auto-login session cookie
-  res.headers.set('Set-Cookie', `session=${user.id}; Path=/; HttpOnly; SameSite=Lax`);
+  res.headers.set('Set-Cookie', cookieStr);
   return res;
 });
