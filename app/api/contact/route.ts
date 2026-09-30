@@ -11,7 +11,7 @@ export const GET = withErrorHandling(async (request: Request) => {
 
 export const POST = withErrorHandling(async (request: Request) => {
   const body = await request.json();
-  const sessionUserId = getSessionUserId(request);
+  const sessionUserId = await getSessionUserId(request);
   const saved = await createMessage({
     ...body,
     authorId: body.authorId ?? sessionUserId,

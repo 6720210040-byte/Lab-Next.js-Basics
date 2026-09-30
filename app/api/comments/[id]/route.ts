@@ -22,7 +22,7 @@ export const PATCH = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
-    const sessionUserId = getSessionUserId(request);
+    const sessionUserId = await getSessionUserId(request);
     const rawBody = await request.json();
 
     let parsed;
@@ -54,7 +54,7 @@ export const DELETE = withErrorHandling(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     const { id } = await params;
-    const sessionUserId = getSessionUserId(request);
+    const sessionUserId = await getSessionUserId(request);
     await deleteComment(id, sessionUserId);
     return Response.json({ ok: true, message: 'ลบคอมเมนต์สำเร็จ' });
   }
