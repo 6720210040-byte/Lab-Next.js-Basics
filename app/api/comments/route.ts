@@ -5,6 +5,8 @@ import { commentSchema } from '@/lib/schemas';
 import { ForbiddenError, ValidationError } from '@/lib/errors';
 import { ZodError } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = withErrorHandling(async (request: Request) => {
   const chatId = new URL(request.url).searchParams.get('chatId') || undefined;
   const user = await getAuthenticatedUser(request);
@@ -20,11 +22,20 @@ export const GET = withErrorHandling(async (request: Request) => {
     createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt),
   }));
 
-  return Response.json({
-    comments,
-    authenticated: Boolean(user),
-    currentUserId: user?.id ?? null,
-  });
+  return new Response(
+    JSON.stringify({
+      comments,
+      authenticated: Boolean(user),
+      currentUserId: user?.id ?? null,
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
+    }
+  );
 });
 
 export const POST = withErrorHandling(async (request: Request) => {

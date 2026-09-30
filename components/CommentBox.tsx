@@ -29,23 +29,55 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
   useEffect(() => {
     let active = true;
 
-    fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`)
-      .then(async (response) => {
-        if (!response.ok) throw new Error('โหลดคอมเมนต์ไม่สำเร็จ');
-        return response.json() as Promise<{ comments: Comment[]; authenticated: boolean; currentUserId?: string | null }>;
-      })
-      .then((data) => {
+    async function fetchData() {
+      try {
+        setIsCheckingAuth(true);
+
+        const [commentsRes, meRes] = await Promise.all([
+          fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+          }),
+          fetch('/api/auth/me', {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+          }),
+        ]);
+
         if (!active) return;
-        setComments(data.comments);
-        setAuthenticated(data.authenticated);
-        setCurrentUserId(data.currentUserId || null);
-      })
-      .catch(() => {
+
+        let isAuth = false;
+        let userId: string | null = null;
+
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.authenticated && meData.user) {
+            isAuth = true;
+            userId = meData.user.id;
+          }
+        }
+
+        if (commentsRes.ok) {
+          const data = await commentsRes.json();
+          setComments(data.comments || []);
+          if (data.authenticated) {
+            isAuth = true;
+            userId = data.currentUserId || userId;
+          }
+        } else {
+          setError('ไม่สามารถโหลดคอมเมนต์ได้');
+        }
+
+        setAuthenticated(isAuth);
+        setCurrentUserId(userId);
+      } catch {
         if (active) setError('ไม่สามารถโหลดคอมเมนต์ได้');
-      })
-      .finally(() => {
+      } finally {
         if (active) setIsCheckingAuth(false);
-      });
+      }
+    }
+
+    fetchData();
 
     return () => {
       active = false;

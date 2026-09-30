@@ -11,6 +11,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' }, { status: 401 });
   }
   const res = Response.json({ ok: true, user: { id: user.id, email: user.email } });
-  res.headers.set('Set-Cookie', `session=${user.id}; Path=/; HttpOnly; SameSite=Strict`);
+  res.headers.set('Set-Cookie', `session=${user.id}; Path=/; HttpOnly; SameSite=Lax`);
   return res;
 }

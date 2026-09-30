@@ -13,7 +13,10 @@ export default function NavbarAuth() {
   useEffect(() => {
     let active = true;
 
-    fetch('/api/auth/me')
+    fetch('/api/auth/me', {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (!active) return;

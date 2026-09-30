@@ -30,6 +30,6 @@ export const POST = withErrorHandling(async (request: Request) => {
     { status: 201 }
   );
   // Auto-login session cookie
-  res.headers.set('Set-Cookie', `session=${user.id}; Path=/; HttpOnly; SameSite=Strict`);
+  res.headers.set('Set-Cookie', `session=${user.id}; Path=/; HttpOnly; SameSite=Lax`);
   return res;
 });
