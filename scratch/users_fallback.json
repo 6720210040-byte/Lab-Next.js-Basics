@@ -33,5 +33,25 @@
     "id": "cmuogqfdi0001tn40brduvtu8",
     "email": "user_b_1790794375091@gmail.com",
     "password": "$2b$10$ulxap.unOiNpSz57VVYisOmQP/V1iS1ys0mGHFOsQQf1UOk0155si"
+  },
+  {
+    "id": "cmuojjpza0000tnhsabdk3tlb",
+    "email": "testfix2@gmail.com",
+    "password": "$2b$10$tIsA8bnktWG8M0NYH.dJQumjgjMEcR3nynzEOIwbz0fQahUTNra06"
+  },
+  {
+    "id": "cmuojosk80001tnhskbxvtp3w",
+    "email": "flowtest@gmail.com",
+    "password": "$2b$10$Lyc5QeYgghUN4Zs9YELMGu6pKMuG51ocOhsrCzY9uCfFxLmtG6T/u"
+  },
+  {
+    "id": "cmuojqafz0002tnhs5dyfbmxd",
+    "email": "finaltest@gmail.com",
+    "password": "$2b$10$S195qNcmSMFG04//ia0ht.i06yJ4g/9b312zLjVrvWVl2wNybaNfq"
+  },
+  {
+    "id": "cmuojy7r10004tnhswlpuhh2y",
+    "email": "newuser1790799777337@gmail.com",
+    "password": "$2b$10$E2yK/kG/BJNeR6QOeH5XaOsACvIf9BuKa44Yu.nkbKhKL7wvmqwVW"
   }
 ]

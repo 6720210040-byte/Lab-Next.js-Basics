@@ -1,5 +1,6 @@
 // app/api/login/route.ts
 import bcrypt from 'bcrypt';
+import { cookies } from 'next/headers';
 import { findUserByEmail } from '@/lib/users';
 
 export async function POST(request: Request) {
@@ -10,9 +11,15 @@ export async function POST(request: Request) {
   if (!isValid) {
     return Response.json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' }, { status: 401 });
   }
-  const isProd = process.env.NODE_ENV === 'production';
-  const cookieStr = `session=${user.id}; Path=/; HttpOnly; SameSite=Lax${isProd ? '; Secure' : ''}`;
-  const res = Response.json({ ok: true, user: { id: user.id, email: user.email } });
-  res.headers.set('Set-Cookie', cookieStr);
-  return res;
-}
+
+  // ใช้ cookies() ของ Next.js 16 เพื่อ set session cookie
+  const cookieStore = await cookies();
+  cookieStore.set('session', user.id, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+
+  return Response.json({ ok: true, user: { id: user.id, email: user.email } });
+}

@@ -4,6 +4,7 @@ import { registerSchema } from '@/lib/schemas';
 import { withErrorHandling } from '@/lib/withErrorHandling';
 import { ValidationError } from '@/lib/errors';
 import { ZodError } from 'zod';
+import { cookies } from 'next/headers';
 
 export const POST = withErrorHandling(async (request: Request) => {
   const rawBody = await request.json();
@@ -25,13 +26,18 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   const user = await createUser(normalizedEmail, parsed.password);
 
-  const isProd = process.env.NODE_ENV === 'production';
-  const cookieStr = `session=${user.id}; Path=/; HttpOnly; SameSite=Lax${isProd ? '; Secure' : ''}`;
-  const res = Response.json(
+  // ใช้ cookies() ของ Next.js 16 เพื่อ set session cookie (auto-login)
+  const cookieStore = await cookies();
+  cookieStore.set('session', user.id, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+
+  return Response.json(
     { ok: true, message: 'สมัครสมาชิกสำเร็จ', user: { id: user.id, email: user.email } },
     { status: 201 }
   );
-  // Auto-login session cookie
-  res.headers.set('Set-Cookie', cookieStr);
-  return res;
 });
+
