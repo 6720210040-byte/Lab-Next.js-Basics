@@ -13,5 +13,25 @@
     "id": "cmuofytq60000tnm0wm1ekx1y",
     "email": "testuser_1790793087402@gmail.com",
     "password": "$2b$10$bEUEZ3gars9JgfkEXb0RruDGTXFXHkyDCn2sV92xocRgpC77OS7hW"
+  },
+  {
+    "id": "cmuogq4u80000tngcu3tjim3a",
+    "email": "user_a_1790794361506@gmail.com",
+    "password": "$2b$10$u60YZp1dunwqX26rFiSAj.WxYOZlaWh1gVpcVNMVxUbAY70nZgUmG"
+  },
+  {
+    "id": "cmuogq4w60001tngc5bkdapk4",
+    "email": "user_b_1790794361506@gmail.com",
+    "password": "$2b$10$b3SfO3TsbfJs1VqKNDUB8O5lXaFvlA14Z0uAd9ad72NWACMwbXEV6"
+  },
+  {
+    "id": "cmuogqfbe0000tn40599k1mca",
+    "email": "user_a_1790794375091@gmail.com",
+    "password": "$2b$10$RpqG143530ih5/ASzILFduOJgFm.hCuXovhoj80JfloKZA0BEgqlm"
+  },
+  {
+    "id": "cmuogqfdi0001tn40brduvtu8",
+    "email": "user_b_1790794375091@gmail.com",
+    "password": "$2b$10$ulxap.unOiNpSz57VVYisOmQP/V1iS1ys0mGHFOsQQf1UOk0155si"
   }
 ]
