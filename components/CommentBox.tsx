@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import type { Comment } from '@/lib/comments';
 
 type CommentBoxProps = {
@@ -11,6 +12,7 @@ type CommentBoxProps = {
 type CommentStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export default function CommentBox({ chatId }: CommentBoxProps) {
+  const pathname = usePathname();
   const [comments, setComments] = useState<Comment[]>([]);
   const [filter, setFilter] = useState('');
   const [content, setContent] = useState('');
@@ -29,60 +31,62 @@ export default function CommentBox({ chatId }: CommentBoxProps) {
   useEffect(() => {
     let active = true;
 
-    async function fetchData() {
+    async function loadAll() {
+      // 1. ตรวจสอบสถานะการเข้าสู่ระบบแบบสด (Real-time Auth)
       try {
-        setIsCheckingAuth(true);
-
-        const [commentsRes, meRes] = await Promise.all([
-          fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' },
-          }),
-          fetch('/api/auth/me', {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' },
-          }),
-        ]);
-
-        if (!active) return;
-
-        let isAuth = false;
-        let userId: string | null = null;
-
+        const meRes = await fetch('/api/auth/me', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         if (meRes.ok) {
           const meData = await meRes.json();
-          if (meData.authenticated && meData.user) {
-            isAuth = true;
-            userId = meData.user.id;
+          if (active) {
+            setAuthenticated(Boolean(meData.authenticated));
+            setCurrentUserId(meData.user?.id || null);
           }
         }
+      } catch (err) {
+        console.error('Failed to verify auth:', err);
+      }
 
+      // 2. ดึงรายการคอมเมนต์
+      try {
+        const commentsRes = await fetch(`/api/comments?chatId=${encodeURIComponent(chatId)}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         if (commentsRes.ok) {
           const data = await commentsRes.json();
-          setComments(data.comments || []);
-          if (data.authenticated) {
-            isAuth = true;
-            userId = data.currentUserId || userId;
+          if (active) {
+            setComments(data.comments || []);
+            if (data.authenticated) {
+              setAuthenticated(true);
+              if (data.currentUserId) setCurrentUserId(data.currentUserId);
+            }
           }
         } else {
-          setError('ไม่สามารถโหลดคอมเมนต์ได้');
+          if (active) setError('ไม่สามารถโหลดคอมเมนต์ได้');
         }
-
-        setAuthenticated(isAuth);
-        setCurrentUserId(userId);
-      } catch {
+      } catch (err) {
+        console.error('Failed to load comments:', err);
         if (active) setError('ไม่สามารถโหลดคอมเมนต์ได้');
       } finally {
         if (active) setIsCheckingAuth(false);
       }
     }
 
-    fetchData();
+    loadAll();
+
+    const onFocus = () => {
+      loadAll();
+    };
+    window.addEventListener('focus', onFocus);
 
     return () => {
       active = false;
+      window.removeEventListener('focus', onFocus);
     };
-  }, [chatId]);
+  }, [chatId, pathname]);
 
   const validationError =
     content.trim().length > 0 && content.trim().length < 3
