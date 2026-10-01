@@ -1,5 +1,27 @@
 import { PrismaClient } from '@prisma/client';
 
+const isVercelEnv = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+let activeDbUrl = process.env.DATABASE_URL;
+
+if (isVercelEnv && activeDbUrl && (activeDbUrl.includes('localhost') || activeDbUrl.includes('127.0.0.1'))) {
+  activeDbUrl = undefined;
+}
+
+if (!activeDbUrl) {
+  const envDbUrl =
+    process.env.DATABASE_POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.PRISMA_DATABASE_URL ||
+    process.env.DATABASE_POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL_NON_POOLING;
+  if (envDbUrl) {
+    process.env.DATABASE_URL = envDbUrl;
+  }
+}
+
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };

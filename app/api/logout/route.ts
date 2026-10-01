@@ -1,6 +1,7 @@
-// app/api/logout/route.ts
+import { cookies } from 'next/headers';
+
 export async function POST() {
-  const res = Response.json({ ok: true, message: 'ออกจากระบบสำเร็จ' });
-  res.headers.set('Set-Cookie', 'session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
-  return res;
+  const cookieStore = await cookies();
+  cookieStore.delete('session');
+  return Response.json({ ok: true, message: 'ออกจากระบบสำเร็จ' });
 }

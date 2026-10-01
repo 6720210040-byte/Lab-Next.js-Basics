@@ -4,6 +4,28 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './prisma';
 
+const isVercelEnv = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+let activeDbUrl = process.env.DATABASE_URL;
+
+if (isVercelEnv && activeDbUrl && (activeDbUrl.includes('localhost') || activeDbUrl.includes('127.0.0.1'))) {
+  activeDbUrl = undefined;
+}
+
+if (!activeDbUrl) {
+  const envDbUrl =
+    process.env.DATABASE_POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.PRISMA_DATABASE_URL ||
+    process.env.DATABASE_POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL_NON_POOLING;
+  if (envDbUrl) {
+    process.env.DATABASE_URL = envDbUrl;
+  }
+}
+
 export interface User {
   id: string;
   email: string;
@@ -63,32 +85,77 @@ if (process.env.NODE_ENV !== 'production') {
 export async function findUserByEmail(email: string): Promise<User | null> {
   const normalized = email.trim().toLowerCase();
   
-  // 1. ลองค้นหาจาก Database จริง
+  // 1. ลองค้นหาจาก Database จริงเป็นอันดับแรก (เพื่อรองรับ Multi-instance Serverless บน Vercel)
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } });
-    if (user) return user;
-  } catch {}
+    if (user) {
+      if (!fallbackUsers.some((u) => u.id === user.id)) {
+        fallbackUsers.push(user);
+      }
+      const diskUsers = loadDiskUsers();
+      if (!diskUsers.some((u) => u.id === user.id)) {
+        diskUsers.push(user);
+        saveDiskUsers(diskUsers);
+      }
+      return user;
+    }
+  } catch (err: any) {
+    console.warn('[findUserByEmail] Prisma DB query failed:', err?.message || err);
+  }
 
-  // 2. ค้นหาจาก Shared Disk File (แก้ปัญหา worker แยก process)
+  // 2. ค้นหาจาก In-Memory Fallback
+  const memUser = fallbackUsers.find((u) => u.email.trim().toLowerCase() === normalized);
+  if (memUser) return memUser;
+
+  // 3. ค้นหาจาก Shared Disk File
   const currentDisk = loadDiskUsers();
   const diskUser = currentDisk.find((u) => u.email.trim().toLowerCase() === normalized);
-  if (diskUser) return diskUser;
+  if (diskUser) {
+    if (!fallbackUsers.some((u) => u.id === diskUser.id)) {
+      fallbackUsers.push(diskUser);
+    }
+    return diskUser;
+  }
 
-  // 3. ค้นหาจาก In-Memory Fallback
-  return fallbackUsers.find((u) => u.email.trim().toLowerCase() === normalized) ?? null;
+  return null;
 }
 
 export async function findUserById(id: string): Promise<User | null> {
+  if (!id) return null;
+
+  // 1. ลองค้นหาจาก Database จริงเป็นอันดับแรก (เพื่อรองรับ Multi-instance Serverless บน Vercel)
   try {
     const user = await prisma.user.findUnique({ where: { id } });
-    if (user) return user;
-  } catch {}
+    if (user) {
+      if (!fallbackUsers.some((u) => u.id === user.id)) {
+        fallbackUsers.push(user);
+      }
+      const diskUsers = loadDiskUsers();
+      if (!diskUsers.some((u) => u.id === user.id)) {
+        diskUsers.push(user);
+        saveDiskUsers(diskUsers);
+      }
+      return user;
+    }
+  } catch (err: any) {
+    console.warn('[findUserById] Prisma DB query failed:', err?.message || err);
+  }
 
+  // 2. ค้นหาจาก In-Memory Fallback
+  const memUser = fallbackUsers.find((u) => u.id === id);
+  if (memUser) return memUser;
+
+  // 3. ค้นหาจาก Shared Disk File
   const currentDisk = loadDiskUsers();
   const diskUser = currentDisk.find((u) => u.id === id);
-  if (diskUser) return diskUser;
+  if (diskUser) {
+    if (!fallbackUsers.some((u) => u.id === diskUser.id)) {
+      fallbackUsers.push(diskUser);
+    }
+    return diskUser;
+  }
 
-  return fallbackUsers.find((u) => u.id === id) ?? null;
+  return null;
 }
 
 export async function createUser(email: string, plainPassword: string): Promise<User> {
@@ -96,9 +163,18 @@ export async function createUser(email: string, plainPassword: string): Promise<
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
   let created: User | null = null;
+  let dbErr: any = null;
   try {
     created = await prisma.user.create({ data: { email: normalized, password: hashedPassword } });
-  } catch {}
+    console.log('✅ User successfully created in Prisma database:', created.email, created.id);
+  } catch (err: any) {
+    dbErr = err;
+    console.error('❌ Error creating user in Prisma database:', err?.message || err);
+  }
+
+  if (!created && (process.env.NODE_ENV === 'production' || process.env.VERCEL)) {
+    throw new Error(`ไม่สามารถสร้างบัญชีผู้ใช้ในระบบได้ เนื่องจากปัญหาการเชื่อมต่อฐานข้อมูล (${dbErr?.message || 'DB connection failed'})`);
+  }
 
   const finalUser: User = created ?? {
     id: `user-${Date.now()}-${Math.random().toString(16).slice(2)}`,

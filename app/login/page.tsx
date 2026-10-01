@@ -53,9 +53,13 @@ function AuthContent() {
       setSuccess(mode === 'login' ? 'เข้าสู่ระบบสำเร็จ กำลังพาคุณไป...' : 'สมัครสมาชิกสำเร็จ กำลังเข้าสู่ระบบ...');
 
       setTimeout(() => {
-        router.push(redirectTo);
-        router.refresh();
-      }, 700);
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectTo;
+        } else {
+          router.push(redirectTo);
+          router.refresh();
+        }
+      }, 600);
     } catch {
       setError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
       setLoading(false);
