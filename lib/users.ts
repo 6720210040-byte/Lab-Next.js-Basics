@@ -4,7 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './prisma';
 
-if (!process.env.DATABASE_URL) {
+const isVercelEnv = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+let activeDbUrl = process.env.DATABASE_URL;
+
+if (isVercelEnv && activeDbUrl && (activeDbUrl.includes('localhost') || activeDbUrl.includes('127.0.0.1'))) {
+  activeDbUrl = undefined;
+}
+
+if (!activeDbUrl) {
   const envDbUrl =
     process.env.DATABASE_POSTGRES_PRISMA_URL ||
     process.env.DATABASE_POSTGRES_URL ||
@@ -156,11 +163,17 @@ export async function createUser(email: string, plainPassword: string): Promise<
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
   let created: User | null = null;
+  let dbErr: any = null;
   try {
     created = await prisma.user.create({ data: { email: normalized, password: hashedPassword } });
     console.log('✅ User successfully created in Prisma database:', created.email, created.id);
   } catch (err: any) {
+    dbErr = err;
     console.error('❌ Error creating user in Prisma database:', err?.message || err);
+  }
+
+  if (!created && (process.env.NODE_ENV === 'production' || process.env.VERCEL)) {
+    throw new Error(`ไม่สามารถสร้างบัญชีผู้ใช้ในระบบได้ เนื่องจากปัญหาการเชื่อมต่อฐานข้อมูล (${dbErr?.message || 'DB connection failed'})`);
   }
 
   const finalUser: User = created ?? {

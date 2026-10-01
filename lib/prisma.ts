@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 
-if (!process.env.DATABASE_URL) {
+const isVercelEnv = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+let activeDbUrl = process.env.DATABASE_URL;
+
+if (isVercelEnv && activeDbUrl && (activeDbUrl.includes('localhost') || activeDbUrl.includes('127.0.0.1'))) {
+  activeDbUrl = undefined;
+}
+
+if (!activeDbUrl) {
   const envDbUrl =
     process.env.DATABASE_POSTGRES_PRISMA_URL ||
     process.env.DATABASE_POSTGRES_URL ||

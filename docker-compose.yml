@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lab-nextjs-basics-db
+    restart: always
+    environment:
+      POSTGRES_USER: lab_user
+      POSTGRES_PASSWORD: lab_password
+      POSTGRES_DB: lab_nextjs_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - lab_nextjs_db_data:/var/lib/postgresql/data
+
+volumes:
+  lab_nextjs_db_data:
