@@ -1,5 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 
+if (!process.env.DATABASE_URL) {
+  const envDbUrl =
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.PRISMA_DATABASE_URL ||
+    process.env.POSTGRES_URL_NON_POOLING;
+  if (envDbUrl) {
+    process.env.DATABASE_URL = envDbUrl;
+  }
+}
+
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };

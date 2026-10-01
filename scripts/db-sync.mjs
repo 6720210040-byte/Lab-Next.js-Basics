@@ -1,6 +1,15 @@
 import { execSync } from 'child_process';
 
-const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+const dbUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.PRISMA_DATABASE_URL ||
+  process.env.POSTGRES_URL_NON_POOLING;
+
+if (dbUrl) {
+  process.env.DATABASE_URL = dbUrl;
+}
 
 if (dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1')) {
   console.log('🔄 Syncing Cloud PostgreSQL Database Schema with Prisma...');
@@ -13,3 +22,4 @@ if (dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1')) {
 } else {
   console.log('ℹ️ Local or missing remote DATABASE_URL, skipping cloud schema sync.');
 }
+
