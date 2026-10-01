@@ -6,9 +6,13 @@ import { prisma } from './prisma';
 
 if (!process.env.DATABASE_URL) {
   const envDbUrl =
+    process.env.DATABASE_POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_POSTGRES_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL ||
     process.env.PRISMA_DATABASE_URL ||
+    process.env.DATABASE_POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL_UNPOOLED ||
     process.env.POSTGRES_URL_NON_POOLING;
   if (envDbUrl) {
     process.env.DATABASE_URL = envDbUrl;
